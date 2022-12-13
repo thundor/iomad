@@ -153,6 +153,13 @@ class user_profile_fields {
                 $columnfieldsql = $DB->sql_order_by_text($columnfieldsql, 1024);
             }
 
+            $columntype = $this->get_user_field_type($profilefield->field->datatype);
+
+            $columnfieldsql = "{$userinfotablealias}.data";
+            if ($DB->get_dbfamily() === 'oracle') {
+                $columnfieldsql = $DB->sql_order_by_text($columnfieldsql, 1024);
+            }
+
             $column = (new column(
                 'profilefield_' . core_text::strtolower($profilefield->field->shortname),
                 new lang_string('customfieldcolumn', 'core_reportbuilder',

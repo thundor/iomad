@@ -357,7 +357,28 @@ class renderer_base {
      * @return moodle_url|false
      */
     public function get_logo_url($maxwidth = null, $maxheight = 200) {
-        global $CFG;
+        global $CFG, $DB, $SESSION;
+
+        // IOMAD
+        if (!empty($SESSION->currenteditingcompany)) {
+            $companyid = $SESSION->currenteditingcompany;
+            if ($companyrec = $DB->get_record('company', array('id' => $companyid))) {
+                $context = \context_system::instance();
+                $fs = get_file_storage();
+                $files = $fs->get_area_files($context->id, 'theme_iomad', 'companylogo', $companyid );
+                if ($files) {
+                    foreach ($files as $file) {
+                        $filename = $file->get_filename();
+                        $filepath = ((int) $maxwidth . 'x' . (int) $maxheight) . '/';
+                        if ($filename != '.') {
+                            return moodle_url::make_pluginfile_url(context_system::instance()->id, 'theme_iomad', 'companylogo', $filepath,
+                                                                  $companyid, "/$filename");
+                        }
+                    }
+                }
+            }
+        }
+
         $logo = get_config('core_admin', 'logo');
         if (empty($logo)) {
             return false;
@@ -382,7 +403,28 @@ class renderer_base {
      * @return moodle_url|false
      */
     public function get_compact_logo_url($maxwidth = 300, $maxheight = 300) {
-        global $CFG;
+        global $CFG, $DB, $SESSION;
+
+        // IOMAD
+        if (!empty($SESSION->currenteditingcompany)) {
+            $companyid = $SESSION->currenteditingcompany;
+            if ($companyrec = $DB->get_record('company', array('id' => $companyid))) {
+                $context = \context_system::instance();
+                $fs = get_file_storage();
+                $files = $fs->get_area_files($context->id, 'theme_iomad', 'companylogo', $companyid );
+                if ($files) {
+                    foreach ($files as $file) {
+                        $filename = $file->get_filename();
+                        $filepath = ((int) $maxwidth . 'x' . (int) $maxheight) . '/';
+                        if ($filename != '.') {
+                            return moodle_url::make_pluginfile_url(context_system::instance()->id, 'theme_iomad', 'companylogo', $filepath,
+                                                                  $companyid, "/$filename");
+                        }
+                    }
+                }
+            }
+        }
+
         $logo = get_config('core_admin', 'logocompact');
         if (empty($logo)) {
             return false;
@@ -3768,11 +3810,42 @@ EOD;
      * @return string
      */
     public function custom_menu($custommenuitems = '') {
-        global $CFG;
+        global $CFG, $DB;
 
         if (empty($custommenuitems) && !empty($CFG->custommenuitems)) {
             $custommenuitems = $CFG->custommenuitems;
         }
+
+        // IOAMD
+        $systemcontext = \context_system::instance();
+        if (\iomad::has_capability('block/iomad_company_admin:companymanagement_view', $systemcontext) ||
+            \iomad::has_capability('block/iomad_company_admin:usermanagement_view', $systemcontext) ||
+            \iomad::has_capability('block/iomad_company_admin:coursemanagement_view', $systemcontext) ||
+            \iomad::has_capability('block/iomad_company_admin:licensemanagement_view', $systemcontext) ||
+            \iomad::has_capability('block/iomad_company_admin:competencymanagement_view', $systemcontext) ||
+            \iomad::has_capability('block/iomad_commerce:admin_view', $systemcontext) ||
+            \iomad::has_capability('block/iomad_microlearning:view', $systemcontext) ||
+            \iomad::has_capability('block/iomad_reports:view', $systemcontext)) {
+            $iomadlink = "-" . get_string('dashboard', 'block_iomad_company_admin') . "|" .
+                         '/blocks/iomad_company_admin/index.php' . "\n\r";
+        } else {
+            $iomadlink = "";
+        }
+
+        // Deal with company custom menu items.
+        if ($companyid = \iomad::get_my_companyid(\context_system::instance(), false)) {
+            if ($companyrec = $DB->get_record('company', array('id' => $companyid))) {
+                if (!empty($companyrec->custommenuitems)) {
+                    $custommenuitems = $companyrec->custommenuitems;
+                }
+            }
+        }
+
+        $custommenuitems = $iomadlink . $custommenuitems;
+
+        $custommenu = new custom_menu($custommenuitems, current_language());
+        return $this->render_custom_menu($custommenu);
+
         $custommenu = new custom_menu($custommenuitems, current_language());
         return $this->render_custom_menu($custommenu);
     }

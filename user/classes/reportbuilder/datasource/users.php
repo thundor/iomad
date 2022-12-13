@@ -132,4 +132,19 @@ class users extends datasource {
             'user:fullname' => SORT_ASC,
         ];
     }
+
+    /**
+     * Set default columns and the sortorder
+     */
+    public function add_default_columns(): void {
+        parent::add_default_columns();
+
+        $persistent = $this->get_report_persistent();
+        $report = manager::get_report_from_persistent($persistent);
+        foreach ($report->get_active_columns() as $column) {
+            if ($column->get_unique_identifier() === 'user:fullname') {
+                report::toggle_report_column_sorting($persistent->get('id'), $column->get_persistent()->get('id'), true);
+            }
+        }
+    }
 }
